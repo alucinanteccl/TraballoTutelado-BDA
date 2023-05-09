@@ -143,6 +143,7 @@ def add_cuota(conn):
                 print(f'Error generico: {e.pgcode}: {e.pgerror}')
             conn.rollback()
 
+## ------------------------------------------------------------
 def delete_can(conn):
     """
         Elimina o can desexado polo usuario
@@ -171,7 +172,7 @@ def delete_can(conn):
             conn.rollback()
 
 
-
+## ------------------------------------------------------------
 def show_cans(conn):
     """
         Lista os cans existentes na BD
@@ -210,7 +211,7 @@ def show_cans(conn):
                 print(f'Error generico: {e.pgcode}: {e.pgerror}')
             conn.rollback()
 
-
+## ------------------------------------------------------------
 def show_apadriñantes(conn):
     """
         Lista os apadriñantes existentes na BD
@@ -250,7 +251,7 @@ def show_apadriñantes(conn):
                 print(f'Error generico: {e.pgcode}: {e.pgerror}')
             conn.rollback()
 
-
+## ------------------------------------------------------------
 def show_cuotas(conn):
     """
         Lista as cuotas existentes na BD
@@ -287,7 +288,8 @@ def show_cuotas(conn):
             else:
                 print(f'Error generico: {e.pgcode}: {e.pgerror}')
             conn.rollback()
-        
+
+## ------------------------------------------------------------       
 def show_cuota(conn, control_tx = True):
     """
     Pide por teclado o código dunha cuota e mostra os seus detalles
@@ -318,6 +320,7 @@ def show_cuota(conn, control_tx = True):
             conn.rollback()
     return retval
 
+## ------------------------------------------------------------
 def show_can(conn, control_tx = True):
     """
     Pide por teclado o código do chip dun can e mostra os seus detalles
@@ -347,7 +350,7 @@ def show_can(conn, control_tx = True):
             conn.rollback()
     return retval
 
-
+## ------------------------------------------------------------
 def show_apadriñante(conn, control_tx = True):
     """
     Pide por teclado o código do chip dun can e mostra os seus detalles
@@ -377,7 +380,7 @@ def show_apadriñante(conn, control_tx = True):
             conn.rollback()
     return retval
 
-
+## ------------------------------------------------------------
 def show_cuotas_by_valor(conn):
     """
     Pide por teclado un valor e mostra as cuotas que teñan un valor inferior a ese
@@ -403,7 +406,7 @@ def show_cuotas_by_valor(conn):
            conn.rollback()
 
 
-
+## ------------------------------------------------------------
 def update_cuota(conn):
     conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_SERIALIZABLE)
     cod = show_cuota(conn,control_tx=False)
@@ -438,6 +441,7 @@ def update_cuota(conn):
                 print(f"Erro: {e.pgcode} - {e.pgerror}")
             conn.rollback()
 
+## ------------------------------------------------------------
 def update_can(conn):
     conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_SERIALIZABLE)
     codchip = show_can(conn,control_tx=False)
@@ -468,11 +472,63 @@ def update_can(conn):
                 print(f"Erro: {e.pgcode} - {e.pgerror}")
             conn.rollback()
 
-def realizar_apadriñamento(conn):
-    return None
-
-
 ## ------------------------------------------------------------
+def realizar_apadriñamento(conn):
+    """
+        Efectua un apadriñamento
+    """
+    conn.isolation_level = psycopg2.extensions.ISOLATION_LEVEL_SERIALIZABLE
+
+    dni = input("Introduce o DNI da persoa que quere apadriñar: ")
+    if dni=="":
+        dni=None
+    cod = input("Introduce o código da cuota que vai pagar: ")
+    if cod=="":
+        cod=None
+    chip = input("Introduce o chip do can que se quere apadriñar: ")
+    if chip=="":
+        chip=None
+
+    sql_apadriñante = """
+        update apadriñante set codcuota = %(c)s  
+        where DNI = %(d)s
+    """
+
+    sql_can = """
+        update can set DNI_apadriñante = %(d)s 
+        where codchip = %(ch)s
+    """
+
+
+    with conn.cursor() as cur:                                      
+        try:                     
+            
+            cur.execute(sql_apadriñante,{'c':cod,'d':dni})
+            if cur.rowcount == 0:
+                print("Error: DNI", dni, " non válido")
+            else:
+                cur.execute(sql_can,{'d':dni,'ch':chip})
+                if cur.rowcount == 0:
+                    print("Error: error de actualización do can")
+                else:  
+                    print("A acción de apadriñamento realizouse correctamente")
+            conn.commit()
+
+        except psycopg2.Error as e:
+            if e.pgcode==psycopg2.errorcodes.NOT_NULL_VIOLATION:
+                print("Error: ningún campo pode quedar vacío")
+            elif e.pgcode==psycopg2.errorcodes.NUMERIC_VALUE_OUT_OF_RANGE:
+                print("Error: valores numéricos fóra de rango")
+            elif e.pgcode==psycopg2.errorcodes.STRING_DATA_RIGHT_TRUNCATION:
+                print("Error: fóra do límite de caracteres")
+            elif e.pgcode==psycopg2.errorcodes.CHECK_VIOLATION:
+                print("Error: non se pode realizar a conta debido a que o saldo da conta compradora non é suficiente para adquirir a propiedade")
+            else:
+                print(f'Error generico: {e.pgcode}: {e.pgerror}')
+            conn.rollback()
+
+
+
 ## ------------------------------------------------------------
 ##Imprime un menú de opcións, solicita a opción e executa a función asociada. 'q' para saír.
 ##-------------------------------------------------------------
