@@ -134,7 +134,7 @@ def add_cuota(conn):
             if e.pgcode==psycopg2.errorcodes.NOT_NULL_VIOLATION:
                 print("Error: non pode haber campos sen valor")
             elif e.pgcode==psycopg2.errorcodes.UNIQUE_VIOLATION:
-                print("Error: xa existe un can co número de chip asociado:",codcuota,"")
+                print("Error: xa existe unha cuota co código asociado:",codcuota,"")
             elif e.pgcode==psycopg2.errorcodes.STRING_DATA_RIGHT_TRUNCATION:
                 print("Error: os valores introducidos están fora do límite de caracteres")
             elif e.pgcode==psycopg2.errorcodes.CHECK_VIOLATION:
@@ -171,60 +171,6 @@ def delete_can(conn):
             conn.rollback()
 
 
-def delete_apadriñante(conn):
-    """
-        Elimina o apadriñante desexado polo usuario
-    """  
-    conn.isolation_level = psycopg2.extensions.ISOLATION_LEVEL_SERIALIZABLE
-   
-    dni = input("Introduce o DNI do apadriñante a eliminar: ")
-    if dni =="":
-        dni = None
-    sql= """ delete from apadriñante where DNI=%(dni)s"""
-    
-    with conn.cursor() as cur:                                               
-        try:                               
-            cur.execute(sql,{'DNI':dni})
-            if cur.rowcount == 0:
-                print("Non existe un apadriñante rexistrado co DNI:",dni,"")
-            else:
-                print("Apadriñante con DNI:",dni," eliminado")
-            conn.commit()
-            
-        except psycopg2.Error as e:
-            if e.pgcode==psycopg2.errorcodes.STRING_DATA_RIGHT_TRUNCATION:
-                print("Error: fóra do límite de caracteres")
-            else:
-                print(f'Error generico: {e.pgcode}: {e.pgerror}')
-            conn.rollback()
-
-
-def delete_cuota(conn):
-    """
-        Elimina a cuota desexada polo usuario
-    """  
-    conn.isolation_level = psycopg2.extensions.ISOLATION_LEVEL_SERIALIZABLE
-   
-    codcuota = input("Introduce o código da cuota a eliminar: ")
-    if codcuota =="":
-        codcuota = None
-    sql= """ delete from cuota where codcuota=%(codcuota)s"""
-    
-    with conn.cursor() as cur:                                               
-        try:                               
-            cur.execute(sql,{'codcuota':codcuota})
-            if cur.rowcount == 0:
-                print("Non existe unha cuota rexistrada co código:",codcuota,"")
-            else:
-                print("Cuota con código:",codcuota," eliminada")
-            conn.commit()
-            
-        except psycopg2.Error as e:
-            if e.pgcode==psycopg2.errorcodes.STRING_DATA_RIGHT_TRUNCATION:
-                print("Error: fóra do límite de caracteres")
-            else:
-                print(f'Error generico: {e.pgcode}: {e.pgerror}')
-            conn.rollback()
 
 def show_cans(conn):
     """
@@ -401,6 +347,63 @@ def show_can(conn, control_tx = True):
             conn.rollback()
     return retval
 
+
+def show_apadriñante(conn, control_tx = True):
+    """
+    Pide por teclado o código do chip dun can e mostra os seus detalles
+    :param conn: a conexión aberta á bd
+    :return: Nada
+    """
+    sdni=input("DNI do apadriñante: ")
+    dni = None if sdni=="" else sdni
+
+    sql= "select DNI,nome,apelido1,apelido2,codcuota from apadriñante where DNI = %(d)s"
+    retval = None
+    with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
+        try:
+            cursor.execute(sql,{'d':dni})
+            row = cursor.fetchone()
+            if row is None:
+                print("\nO apadriñante indicado non existe")
+            else:
+                print(f"DNI:{dni}   Nome:{row['nome']} {row['apelido1']} {row['apelido2']}  Código da cuota que ten asociada:{row[4]}")
+                retval = dni
+            if control_tx:
+                conn.commit()
+                
+        except psycopg2.Error as e:
+            print(f"Erro: {e.pgcode} - {e.pgerror}")
+        if control_tx:
+            conn.rollback()
+    return retval
+
+
+def show_cuotas_by_valor(conn):
+    """
+    Pide por teclado un valor e mostra as cuotas que teñan un valor inferior a ese
+    :param conn: a conexión aberta á bd
+    :return: Nada
+    """
+    svalor=input("Valor da cuota: ")
+    valor = None if svalor=="" else float(svalor)
+
+    sql= "select codcuota,nome,valor from cuota where valor < %(v)s"
+    
+    with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
+       try:
+           cursor.execute(sql,{'v':valor})
+           rows = cursor. fetchall()
+           for row in rows:
+               print(f"Código: {row['codcuota']}   Nome: {row['nome']}   Valor: {row['valor']}")
+           print(f"Atopadas {cursor.rowcount} cuotas")
+           conn.commit()
+               
+       except psycopg2.Error as e:
+           print(f"Erro: {e.pgcode} - {e.pgerror}")
+           conn.rollback()
+
+
+
 def update_cuota(conn):
     conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_SERIALIZABLE)
     cod = show_cuota(conn,control_tx=False)
@@ -465,34 +468,11 @@ def update_can(conn):
                 print(f"Erro: {e.pgcode} - {e.pgerror}")
             conn.rollback()
 
-def show_can_apadriñante_cuota(conn, control_tx = True):
-    """
-    Pide por teclado o código do chip dun can e mostra os seus detalles
-    :param conn: a conexión aberta á bd
-    :return: Nada
-    """
-    schip=input("Código do chip do can: ")
-    chip = None if schip=="" else int(schip)
+def realizar_apadriñamento(conn):
+    return None
 
-    sql= "select codchip,nome,observacions,DNI_apadriñante from can where codchip = %(c)s"
-    retval = None
-    with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
-        try:
-            cursor.execute(sql,{'c':chip})
-            row = cursor.fetchone()
-            if row is None:
-                print("\nO can indicado non existe")
-            else:
-                print(f"Chip:{chip}   Nome:{row['nome']}   Observacións:{row['observacions']}   DNI do apadriñante:{row[3]}")
-                retval = chip
-            if control_tx:
-                conn.commit()
-                
-        except psycopg2.Error as e:
-            print(f"Erro: {e.pgcode} - {e.pgerror}")
-        if control_tx:
-            conn.rollback()
-    return retval
+
+## ------------------------------------------------------------
 ## ------------------------------------------------------------
 ##Imprime un menú de opcións, solicita a opción e executa a función asociada. 'q' para saír.
 ##-------------------------------------------------------------
@@ -503,16 +483,14 @@ def menu(conn):
 2 - Engadir apadriñante
 3 - Engadir cuota
 4 - Eliminar can
-5 - Eliminar apadriñante
-6 - Eliminar cuota
-7 - Listar cans
-8 - Listar apadriñantes
-9 - Listar cuotas
-10 - Mostrar cuota
-11 - Mostrar can
-12 - Actualizar cuota (Incrementar valor)
-13 - Actualizar observacións dun can
-14 - Mostrar can, o seu apadriñante e o seu tipo de cuota.
+5 - Listar cans
+6 - Mostrar apadriñante
+7 - Mostrar cuotas polo valor
+8 - Mostrar cuota
+9 - Mostrar can
+10 - Actualizar cuota (Incrementar valor)
+11 - Actualizar observacións dun can
+12 - Realizar apadriñamento
 q - Saír   
 """
     while True:
@@ -529,25 +507,22 @@ q - Saír
         elif tecla == '4':
             delete_can(conn)
         elif tecla == '5':
-            delete_apadriñante(conn)
-        elif tecla == '6':
-            delete_cuota(conn)
-        elif tecla == '7':
             show_cans(conn)
+        elif tecla == '6':
+            show_apadriñante(conn)
+        elif tecla == '7':
+            show_cuotas_by_valor(conn)
         elif tecla == '8':
-            show_apadriñantes(conn)
-        elif tecla == '9':
-            show_cuotas(conn)
-        elif tecla == '10':
             show_cuota(conn)
-        elif tecla == '11':
+        elif tecla == '9':
             show_can(conn)
-        elif tecla == '12':
+        elif tecla == '10':
             update_cuota(conn)
-        elif tecla == '13':
+        elif tecla == '11':
             update_can(conn)
-        elif tecla == '13':
-            show_can_apadriñante_cuota(conn)
+        elif tecla == '12':
+            realizar_apadriñamento(conn)#Hacer una funcionalidad con dos updates
+        #Hacer funcionalidad con select y insert
 
 
 ## ------------------------------------------------------------
