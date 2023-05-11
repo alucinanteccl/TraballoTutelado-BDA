@@ -61,9 +61,9 @@ def add_can(conn):
             elif e.pgcode==psycopg2.errorcodes.UNIQUE_VIOLATION:
                 print("Error: xa existe un can co número de chip asociado:",chip,"")
             elif e.pgcode==psycopg2.errorcodes.STRING_DATA_RIGHT_TRUNCATION:
-                print("Error: os valores introducidos están fora do límite de caracteres")
+                print("Error: os datos introducidos están fora do límite de caracteres")
             elif e.pgcode==psycopg2.errorcodes.CHECK_VIOLATION:
-                print("Error: o valor dos datos introducidos debe ser válido")
+                print("Error: os datos introducidos deben ser válidos")
             else:
                 print(f'Error generico: {e.pgcode}: {e.pgerror}')
             conn.rollback()
@@ -100,9 +100,9 @@ def add_apadriñante(conn):
             elif e.pgcode==psycopg2.errorcodes.UNIQUE_VIOLATION:
                 print("Error: xa existe un apadriñante co DNI asociado:",dni,"")
             elif e.pgcode==psycopg2.errorcodes.STRING_DATA_RIGHT_TRUNCATION:
-                print("Error: os valores introducidos están fora do límite de caracteres")
+                print("Error: os datos introducidos están fora do límite de caracteres")
             elif e.pgcode==psycopg2.errorcodes.CHECK_VIOLATION:
-                print("Error: o valor dos datos introducidos debe ser válido")
+                print("Error: os datos introducidos deben ser válidos")
             else:
                 print(f'Error generico: {e.pgcode}: {e.pgerror}')
             conn.rollback()
@@ -139,9 +139,9 @@ def add_cuota(conn):
             elif e.pgcode==psycopg2.errorcodes.UNIQUE_VIOLATION:
                 print("Error: xa existe unha cuota co código asociado:",codcuota,"")
             elif e.pgcode==psycopg2.errorcodes.STRING_DATA_RIGHT_TRUNCATION:
-                print("Error: os valores introducidos están fora do límite de caracteres")
+                print("Error: os datos introducidos están fora do límite de caracteres")
             elif e.pgcode==psycopg2.errorcodes.CHECK_VIOLATION:
-                print("Error: o valor dos datos introducidos debe ser válido")
+                print("Error: os datos introducidos deben ser válidos")
             else:
                 print(f'Error generico: {e.pgcode}: {e.pgerror}')
             conn.rollback()
@@ -171,7 +171,7 @@ def delete_can(conn):
             
         except psycopg2.Error as e:
             if e.pgcode==psycopg2.errorcodes.STRING_DATA_RIGHT_TRUNCATION:
-                print("Error: fóra do límite de caracteres")
+                print("Error: excedido límite de caracteres")
             else:
                 print(f'Error generico: {e.pgcode}: {e.pgerror}')
             conn.rollback()
@@ -215,7 +215,7 @@ def show_cans(conn):
             if e.pgcode==psycopg2.errorcodes:
                 print('Error: ')
             else:
-                print(f'Error generico: {e.pgcode}: {e.pgerror}')
+                print(f'Error xenérico: {e.pgcode}: {e.pgerror}')
             conn.rollback()
 
 ## ------------------------------------------------------------
@@ -227,6 +227,8 @@ def show_cuota(conn, control_tx = True):
     :param conn: a conexión aberta á bd
     :return: Nada
     """
+    conn.isolation_level = psycopg2.extensions.ISOLATION_LEVEL_READ_COMMITTED
+
     scod=input("Código da cuota: ")
     cod = None if scod=="" else int(scod)
 
@@ -260,6 +262,8 @@ def show_can(conn, control_tx = True):
     :param conn: a conexión aberta á bd
     :return: Nada
     """
+    conn.isolation_level = psycopg2.extensions.ISOLATION_LEVEL_READ_COMMITTED
+
     schip=input("Código do chip do can: ")
     chip = None if schip=="" else int(schip)
 
@@ -292,6 +296,8 @@ def show_apadriñante(conn, control_tx = True):
     :param conn: a conexión aberta á bd
     :return: Nada
     """
+    conn.isolation_level = psycopg2.extensions.ISOLATION_LEVEL_READ_COMMITTED
+
     sdni=input("DNI do apadriñante: ")
     dni = None if sdni=="" else sdni
 
@@ -324,6 +330,8 @@ def show_cuotas_by_valor(conn):
     :param conn: a conexión aberta á bd
     :return: Nada
     """
+    conn.isolation_level = psycopg2.extensions.ISOLATION_LEVEL_READ_COMMITTED
+
     svalor=input("Valor da cuota: ")
     valor = None if svalor=="" else float(svalor)
 
@@ -353,6 +361,7 @@ def update_cuota(conn):
     :return: Nada
     """
     conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_SERIALIZABLE)
+
     cod = show_cuota(conn,control_tx=False)
     if cod is None:
         conn.rollback()
@@ -374,13 +383,11 @@ def update_cuota(conn):
             print("\nValor actualizado correctamente")
         except psycopg2.Error as e:
             if e.pgcode == psycopg2.errorcodes.CHECK_VIOLATION:
-                print("O valor debe ser positivo: non se modifica o artigo")
+                print("O valor debe ser positivo: non se modifica o a cuota")
             elif e.pgcode == psycopg2.errorcodes.NUMERIC_VALUE_OUT_OF_RANGE:
-                print("O prezo é demasiado grande ou demasiado pequeno: debe ser menor de 1000")
-            elif e.pgcode == psycopg2.errorcodes.NOT_NULL_VIOLATION:
-                print("O nome do artigo é requerido")
+                print("O incremento é demasiado grande ou demasiado pequeno: debe ser menor de 1000")
             elif e.pgcode == psycopg2.errorcodes.SERIALIZATION_FAILURE:
-                print("Non se pode modificar o prezo. Outro usuario xa o modificou")
+                print("Non se pode modificar o valor. Outro usuario xa o modificou")
             else:
                 print(f"Erro: {e.pgcode} - {e.pgerror}")
             conn.rollback()
@@ -416,9 +423,9 @@ def update_can(conn):
             print("\nObservacións actualizadas correctamente")
         except psycopg2.Error as e:
             if e.pgcode == psycopg2.errorcodes.NOT_NULL_VIOLATION:
-                print("O pedido é requerido")
+                print("O código do chip é requerido")
             elif e.pgcode == psycopg2.errorcodes.SERIALIZATION_FAILURE:
-                print("Non se pode modificar o valor das observacións. Outro usuario xa o modificou")
+                print("Non se poden modificar as observacións. Outro usuario xa o modificou")
             else:
                 print(f"Erro: {e.pgcode} - {e.pgerror}")
             conn.rollback()
@@ -436,7 +443,7 @@ def realizar_apadriñamento(conn):
     dni = input("Introduce o DNI da persoa que quere apadriñar: ")
     if dni=="":
         dni=None
-    cod = input("Introduce o código da cuota que vai pagar: ")
+    cod = input("Introduce o código da cuota que vai pagar (o que xa estaba pagando ou un novo se o desexa): ")
     if cod=="":
         cod=None
     chip = input("Introduce o chip do can que se quere apadriñar: ")
@@ -481,11 +488,9 @@ def realizar_apadriñamento(conn):
             if e.pgcode==psycopg2.errorcodes.NOT_NULL_VIOLATION:
                 print("Error: ningún campo pode quedar vacío")
             elif e.pgcode==psycopg2.errorcodes.NUMERIC_VALUE_OUT_OF_RANGE:
-                print("Error: valores numéricos fóra de rango")
+                print("Error: valores numéricos fóra do rango")
             elif e.pgcode==psycopg2.errorcodes.STRING_DATA_RIGHT_TRUNCATION:
                 print("Error: fóra do límite de caracteres")
-            elif e.pgcode==psycopg2.errorcodes.CHECK_VIOLATION:
-                print("Error: non se pode realizar a conta debido a que o saldo da conta compradora non é suficiente para adquirir a propiedade")
             else:
                 print(f'Error generico: {e.pgcode}: {e.pgerror}')
             conn.rollback()
