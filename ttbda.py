@@ -27,8 +27,9 @@ def disconnect_db(conn):
     conn.commit()
     conn.close()
 
-
 ## ------------------------------------------------------------
+##Función para engadir un can á base de datos
+##-------------------------------------------------------------
 def add_can(conn):
     """
         Crea e engade un novo Can á BD da protectora cos datos introducidos polo
@@ -42,18 +43,17 @@ def add_can(conn):
 
     nome = input ("Introduce o nome do novo can:")
     observacions = input ("Introduce algunhas observacións necesarias:")
-    dni = input ("Introduce o dni do seu apadriñante se o ten:")
 
     sql= """
         insert into can (codchip,nome,observacions,DNI_apadriñante) 
-        VALUES  (%(chip)s,%(nome)s,%(observacions)s,%(DNI_apadriñante)s)
+        VALUES  (%(chip)s,%(nome)s,%(observacions)s,NULL)
     """
     
     with conn.cursor() as cur:                                      
         try:                     
-            cur.execute(sql,{'chip':chip,'nome':nome,'observacions':observacions,'DNI_apadriñante':dni})
+            cur.execute(sql,{'chip':chip,'nome':nome,'observacions':observacions})
             conn.commit()
-            print('Can con chip:',chip,', nome:', nome, ', observacións:', observacions, ' e DNI do apadriñante:', dni, ' engadida correctamente')
+            print('Can con chip:',chip,', nome:', nome, ', observacións:', observacions, ' e DNI do apadriñante: None engadida correctamente')
             
         except psycopg2.Error as e:
             if e.pgcode==psycopg2.errorcodes.NOT_NULL_VIOLATION:
@@ -69,9 +69,11 @@ def add_can(conn):
             conn.rollback()
 
 ## ------------------------------------------------------------
+##Función para engadir un apadriñante á base de datos
+##-------------------------------------------------------------
 def add_apadriñante(conn):
     """
-        Crea e engade un novo Can á BD da protectora cos datos introducidos polo
+        Crea e engade un novo apadriñante á BD da protectora cos datos introducidos polo
         usuario
     """
     conn.isolation_level = psycopg2.extensions.ISOLATION_LEVEL_READ_COMMITTED
@@ -80,18 +82,17 @@ def add_apadriñante(conn):
     nome = input ("Introduce o nome do novo apadriñante: ")
     apelido1 = input ("Introduce o primeiro apelido do novo apadriñante: ")
     apelido2 = input ("Introduce o segundo apelido do novo apadriñante: ")
-    codcuota = input ("Introduce o código da cuota a pagar, para o(s) can(s) apadriñado(s) do novo apadriñante: ")
 
     sql= """
         insert into apadriñante (DNI,nome,apelido1,apelido2,codcuota) 
-        VALUES  (%(DNI)s,%(nome)s,%(apelido1)s,%(apelido2)s,%(codcuota)s)
+        VALUES  (%(DNI)s,%(nome)s,%(apelido1)s,%(apelido2)s,NULL)
     """
     
     with conn.cursor() as cur:                                      
         try:                     
-            cur.execute(sql,{'DNI':dni,'nome':nome,'apelido1':apelido1,'apelido2':apelido2,'codcuota':codcuota})
+            cur.execute(sql,{'DNI':dni,'nome':nome,'apelido1':apelido1,'apelido2':apelido2})
             conn.commit()
-            print('Apadriñante con DNI:',dni,', nome:', nome,', apelidos', apelido1,'', apelido2,' e código de cuota ',codcuota,'engadida correctamente')
+            print('Apadriñante con DNI:',dni,', nome:', nome,', apelidos:', apelido1,'', apelido2,' e código de cuota: None engadida correctamente')
             
         except psycopg2.Error as e:
             if e.pgcode==psycopg2.errorcodes.NOT_NULL_VIOLATION:
@@ -107,9 +108,11 @@ def add_apadriñante(conn):
             conn.rollback()
 
 ## ------------------------------------------------------------
+##Función para engadir unha cuota á base de datos
+##-------------------------------------------------------------
 def add_cuota(conn):
     """
-        Crea e engade un novo Can á BD da protectora cos datos introducidos polo
+        Crea e engade unha nova cuota á BD da protectora cos datos introducidos polo
         usuario
     """
     conn.isolation_level = psycopg2.extensions.ISOLATION_LEVEL_READ_COMMITTED
@@ -144,6 +147,8 @@ def add_cuota(conn):
             conn.rollback()
 
 ## ------------------------------------------------------------
+##Función para eliminar un can á base de datos
+##-------------------------------------------------------------
 def delete_can(conn):
     """
         Elimina o can desexado polo usuario
@@ -172,7 +177,9 @@ def delete_can(conn):
             conn.rollback()
 
 
-## ------------------------------------------------------------
+### ------------------------------------------------------------
+##Función para listar todos os cans da base de datos
+##-------------------------------------------------------------
 def show_cans(conn):
     """
         Lista os cans existentes na BD
@@ -212,84 +219,8 @@ def show_cans(conn):
             conn.rollback()
 
 ## ------------------------------------------------------------
-def show_apadriñantes(conn):
-    """
-        Lista os apadriñantes existentes na BD
-    """    
-    conn.isolation_level = psycopg2.extensions.ISOLATION_LEVEL_READ_COMMITTED
-
-    sql= """
-        select apadriñante.DNI, apadriñante.nome, apadriñante.apelido1, apadriñante.apelido2, apadriñante.codcuota
-        from apadriñante
-    """
-    
-    with conn.cursor() as cur:                                      
-        try:                     
-            cur.execute(sql)
-            row=cur.fetchone()
-           
-            if row:
-                print("Lista de apadriñantes rexistrados na BD:")
-                while row:
-                    print(f"Apadriñante número {cur.rownumber} de {cur.rowcount}:")
-                    print(f"-DNI: {row[0]}")
-                    print(f"-Nome: {row[1]}")
-                    print(f"-Primeiro apelido: {row[2]}")
-                    print(f"-Segundo apelido: {row[3]}")
-                    print(f"-Código da cuota que paga: {row[4]}")
-                    print("\n")
-                    row=cur.fetchone()
-
-            else:
-                print("Non hai apadriñantes rexistrados")
-            conn.commit()
-            
-        except psycopg2.Error as e:
-            if e.pgcode==psycopg2.errorcodes:
-                print('Error: ')
-            else:
-                print(f'Error generico: {e.pgcode}: {e.pgerror}')
-            conn.rollback()
-
-## ------------------------------------------------------------
-def show_cuotas(conn):
-    """
-        Lista as cuotas existentes na BD
-    """    
-    conn.isolation_level = psycopg2.extensions.ISOLATION_LEVEL_READ_COMMITTED
-
-    sql= """
-        select cuota.codcuota, cuota.nome, cuota.valor
-        from cuota
-    """
-    
-    with conn.cursor() as cur:                                      
-        try:                     
-            cur.execute(sql)
-            row=cur.fetchone()
-           
-            if row:
-                print("Lista de cuotas rexistradas na BD:")
-                while row:
-                    print(f"Cuota número {cur.rownumber} de {cur.rowcount}:")
-                    print(f"-Código da cuota: {row[0]}")
-                    print(f"-Nome: {row[1]}")
-                    print(f"-Valor: {row[2]} euros")
-                    print("\n")
-                    row=cur.fetchone()
-
-            else:
-                print("Non hai cuotas rexistradas")
-            conn.commit()
-            
-        except psycopg2.Error as e:
-            if e.pgcode==psycopg2.errorcodes:
-                print('Error: ')
-            else:
-                print(f'Error generico: {e.pgcode}: {e.pgerror}')
-            conn.rollback()
-
-## ------------------------------------------------------------       
+##Función para mostrar unha cuota da base de datos
+##-------------------------------------------------------------       
 def show_cuota(conn, control_tx = True):
     """
     Pide por teclado o código dunha cuota e mostra os seus detalles
@@ -321,6 +252,8 @@ def show_cuota(conn, control_tx = True):
     return retval
 
 ## ------------------------------------------------------------
+##Función para mostrar un can da base de datos
+##-------------------------------------------------------------
 def show_can(conn, control_tx = True):
     """
     Pide por teclado o código do chip dun can e mostra os seus detalles
@@ -351,9 +284,11 @@ def show_can(conn, control_tx = True):
     return retval
 
 ## ------------------------------------------------------------
+##Función para mostrar un apadriñante da base de datos
+##-------------------------------------------------------------
 def show_apadriñante(conn, control_tx = True):
     """
-    Pide por teclado o código do chip dun can e mostra os seus detalles
+    Pide por teclado o DNI dun apadriñante e mostra os seus detalles
     :param conn: a conexión aberta á bd
     :return: Nada
     """
@@ -381,6 +316,8 @@ def show_apadriñante(conn, control_tx = True):
     return retval
 
 ## ------------------------------------------------------------
+##Función para listar unha serie de cuotas da base de datos en base a un valor
+##-------------------------------------------------------------
 def show_cuotas_by_valor(conn):
     """
     Pide por teclado un valor e mostra as cuotas que teñan un valor inferior a ese
@@ -407,7 +344,14 @@ def show_cuotas_by_valor(conn):
 
 
 ## ------------------------------------------------------------
+##Función para cambiar o valor dunha cuota da base de datos
+##-------------------------------------------------------------
 def update_cuota(conn):
+    """
+    Pide por teclado o código dunha cuota e incrementa o seu valor en base a unha porcentaxe que tamén se pedirá
+    :param conn: a conexión aberta á bd
+    :return: Nada
+    """
     conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_SERIALIZABLE)
     cod = show_cuota(conn,control_tx=False)
     if cod is None:
@@ -442,7 +386,14 @@ def update_cuota(conn):
             conn.rollback()
 
 ## ------------------------------------------------------------
+##Función para cambiar as observacións dun can da base de datos
+##-------------------------------------------------------------
 def update_can(conn):
+    """
+    Pide por teclado o código dun chip dun can e cambia as súas observacións a unhas pedidas
+    :param conn: a conexión aberta á bd
+    :return: Nada
+    """
     conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_SERIALIZABLE)
     codchip = show_can(conn,control_tx=False)
     if codchip is None:
@@ -473,9 +424,12 @@ def update_can(conn):
             conn.rollback()
 
 ## ------------------------------------------------------------
+##Función para realizar un apadriñamento
+##-------------------------------------------------------------
 def realizar_apadriñamento(conn):
     """
-        Efectua un apadriñamento
+        Efectua un apadriñamento a partir do DNI da persoa que queira apadriñar, a cuota que vai pagar
+        e o chip do can a apadriñar
     """
     conn.isolation_level = psycopg2.extensions.ISOLATION_LEVEL_SERIALIZABLE
 
@@ -489,6 +443,10 @@ def realizar_apadriñamento(conn):
     if chip=="":
         chip=None
 
+    sql_select_cuota = """
+        select codcuota from cuota 
+        where codcuota = %(ccu)s
+    """
     sql_apadriñante = """
         update apadriñante set codcuota = %(c)s  
         where DNI = %(d)s
@@ -499,19 +457,24 @@ def realizar_apadriñamento(conn):
         where codchip = %(ch)s
     """
 
-
     with conn.cursor() as cur:                                      
         try:                     
             
-            cur.execute(sql_apadriñante,{'c':cod,'d':dni})
-            if cur.rowcount == 0:
-                print("Error: DNI", dni, " non válido")
-            else:
-                cur.execute(sql_can,{'d':dni,'ch':chip})
+            cur.execute(sql_select_cuota,{'ccu':cod})
+            row=cur.fetchone()
+           
+            if row:
+                cur.execute(sql_apadriñante,{'c':cod,'d':dni})
                 if cur.rowcount == 0:
-                    print("Error: error de actualización do can")
-                else:  
-                    print("A acción de apadriñamento realizouse correctamente")
+                    print("Error: DNI", dni, " non válido")
+                else:
+                    cur.execute(sql_can,{'d':dni,'ch':chip})
+                    if cur.rowcount == 0:
+                        print("Error: error de actualización do can")
+                    else:  
+                        print("A acción de apadriñamento realizouse correctamente")
+            else:
+                print("Error: non existe a cuota co código:",cod,"")
             conn.commit()
 
         except psycopg2.Error as e:
@@ -577,8 +540,7 @@ q - Saír
         elif tecla == '11':
             update_can(conn)
         elif tecla == '12':
-            realizar_apadriñamento(conn)#Hacer una funcionalidad con dos updates
-        #Hacer funcionalidad con select y insert
+            realizar_apadriñamento(conn)
 
 
 ## ------------------------------------------------------------
