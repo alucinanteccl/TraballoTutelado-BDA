@@ -37,12 +37,19 @@ def add_can(conn):
     """
     conn.isolation_level = psycopg2.extensions.ISOLATION_LEVEL_READ_COMMITTED
 
-    chip = input("Introduce o número do chip do can:")
+    chip = input("Introduce o número do chip do can: ")
+    if not chip.isnumeric():
+        return print("Error código de chip incorrecto debe ser un número")
+    if len(chip)!=15:
+        return print("Error código de chip incorrecto debe tener 15 dígitos")
+    
     if chip=="":
         chip=None
 
-    nome = input ("Introduce o nome do novo can:")
-    observacions = input ("Introduce algunhas observacións necesarias:")
+    nome = input ("Introduce o nome do novo can: ")
+    if nome=="":
+        nome=None
+    observacions = input ("Introduce algunhas observacións necesarias: ")
 
     sql= """
         insert into can (codchip,nome,observacions,DNI_apadriñante) 
@@ -79,9 +86,24 @@ def add_apadriñante(conn):
     conn.isolation_level = psycopg2.extensions.ISOLATION_LEVEL_READ_COMMITTED
 
     dni = input ("Introduce o dni do novo apadriñante: ")
+    if len(dni)!=9:
+        return print("Error: dni incorrecto debe tener 8 dígitos y una letra")
+    if not dni[8:9].isalpha():
+        return print("Error: dni incorrecto debe tener una letra al final")
+    if not dni[1:8].isnumeric():
+        return print("Error: dni incorrecto debe tener 8 dígitos al inicio")
+    if dni=="":
+        dni=None
+    
     nome = input ("Introduce o nome do novo apadriñante: ")
+    if nome=="":
+        nome=None
     apelido1 = input ("Introduce o primeiro apelido do novo apadriñante: ")
+    if apelido1=="":
+        apelido1=None
     apelido2 = input ("Introduce o segundo apelido do novo apadriñante: ")
+    if apelido2=="":
+        apelido2=None
 
     sql= """
         insert into apadriñante (DNI,nome,apelido1,apelido2,codcuota) 
@@ -118,8 +140,16 @@ def add_cuota(conn):
     conn.isolation_level = psycopg2.extensions.ISOLATION_LEVEL_READ_COMMITTED
 
     codcuota = input("Introduce o Código da nova cuota: ")
+    if not codcuota.isnumeric():
+        return print("Error: código da cuota incorrecto debe ser un número")
+    if codcuota=="":
+        codcuota=None
     nome = input ("Introduce o nome da nova cuota: ")
-    valor = input ("Introduce O valor en euros da nova cuota: ")
+    if nome=="":
+        nome=None
+    valor = input ("Introduce o valor en euros da nova cuota: ")
+    if not valor.isnumeric():
+        return print("Error: valor da cuota incorrecto debe ser un número")
 
 
     sql= """
@@ -142,6 +172,8 @@ def add_cuota(conn):
                 print("Error: os datos introducidos están fora do límite de caracteres")
             elif e.pgcode==psycopg2.errorcodes.CHECK_VIOLATION:
                 print("Error: os datos introducidos deben ser válidos")
+            elif e.pgcode == psycopg2.errorcodes.NUMERIC_VALUE_OUT_OF_RANGE:
+                print("O valor é demasiado grande: debe ser menor de 1000")
             else:
                 print(f'Error generico: {e.pgcode}: {e.pgerror}')
             conn.rollback()
@@ -156,8 +188,13 @@ def delete_can(conn):
     conn.isolation_level = psycopg2.extensions.ISOLATION_LEVEL_SERIALIZABLE
    
     chip = input("Introduce o código do chip do can a eliminar: ")
-    if chip =="":
-        chip = None
+    if not chip.isnumeric():
+        return print("Error código de chip incorrecto debe ser un número")
+    if len(chip)!=15:
+        return print("Error código de chip incorrecto debe tener 15 dígitos")
+    
+    if chip=="":
+        chip=None
     sql= """ delete from can where codchip=%(chip)s"""
     
     with conn.cursor() as cur:                                               
@@ -177,47 +214,6 @@ def delete_can(conn):
             conn.rollback()
 
 
-### ------------------------------------------------------------
-##Función para listar todos os cans da base de datos
-##-------------------------------------------------------------
-def show_cans(conn):
-    """
-        Lista os cans existentes na BD
-    """    
-    conn.isolation_level = psycopg2.extensions.ISOLATION_LEVEL_READ_COMMITTED
-
-    sql= """
-        select can.codchip, can.nome, can.observacions, can.DNI_apadriñante
-        from can
-    """
-    
-    with conn.cursor() as cur:                                      
-        try:                     
-            cur.execute(sql)
-            row=cur.fetchone()
-           
-            if row:
-                print("Lista de cans rexistrados na BD:")
-                while row:
-                    print(f"Can número {cur.rownumber} de {cur.rowcount}:")
-                    print(f"-Código do chip: {row[0]}")
-                    print(f"-Nome: {row[1]}")
-                    print(f"-Observacións: {row[2]}")
-                    print(f"-DNI do seu apadriñante: {row[3]}")
-                    print("\n")
-                    row=cur.fetchone()
-
-            else:
-                print("Non hai cans rexistrados")
-            conn.commit()
-            
-        except psycopg2.Error as e:
-            if e.pgcode==psycopg2.errorcodes:
-                print('Error: ')
-            else:
-                print(f'Error xenérico: {e.pgcode}: {e.pgerror}')
-            conn.rollback()
-
 ## ------------------------------------------------------------
 ##Función para mostrar unha cuota da base de datos
 ##-------------------------------------------------------------       
@@ -229,8 +225,11 @@ def show_cuota(conn, control_tx = True):
     """
     conn.isolation_level = psycopg2.extensions.ISOLATION_LEVEL_READ_COMMITTED
 
-    scod=input("Código da cuota: ")
-    cod = None if scod=="" else int(scod)
+    cod=input("Código da cuota: ")
+    if not cod.isnumeric():
+        return print("Error: código da cuota incorrecto debe ser un número")
+    if cod=="":
+        cod=None
 
     sql= "select codcuota,nome,valor from cuota where codcuota = %(c)s"
     retval = None
@@ -264,8 +263,14 @@ def show_can(conn, control_tx = True):
     """
     conn.isolation_level = psycopg2.extensions.ISOLATION_LEVEL_READ_COMMITTED
 
-    schip=input("Código do chip do can: ")
-    chip = None if schip=="" else int(schip)
+    chip=input("Código do chip do can: ")
+    if not chip.isnumeric():
+        return print("Error código de chip incorrecto debe ser un número")
+    if len(chip)!=15:
+        return print("Error código de chip incorrecto debe tener 15 dígitos")
+    
+    if chip=="":
+        chip=None
 
     sql= "select codchip,nome,observacions,DNI_apadriñante from can where codchip = %(c)s"
     retval = None
@@ -298,8 +303,15 @@ def show_apadriñante(conn, control_tx = True):
     """
     conn.isolation_level = psycopg2.extensions.ISOLATION_LEVEL_READ_COMMITTED
 
-    sdni=input("DNI do apadriñante: ")
-    dni = None if sdni=="" else sdni
+    dni=input("DNI do apadriñante: ")
+    if len(dni)!=9:
+        return print("Error: dni incorrecto debe tener 8 dígitos y una letra")
+    if not dni[8:9].isalpha():
+        return print("Error: dni incorrecto debe tener una letra al final")
+    if not dni[1:8].isnumeric():
+        return print("Error: dni incorrecto debe tener 8 dígitos al inicio")
+    if dni=="":
+        dni=None
 
     sql= "select DNI,nome,apelido1,apelido2,codcuota from apadriñante where DNI = %(d)s"
     retval = None
@@ -321,6 +333,55 @@ def show_apadriñante(conn, control_tx = True):
             conn.rollback()
     return retval
 
+
+### ------------------------------------------------------------
+##Función para mostrar un apadriñante e os seus cans apadriñados
+##-------------------------------------------------------------
+def show_apadriñante_and_cans(conn):
+    """
+        Mostra o apadriñante pedido e os cans que ten apadriñados 
+    """    
+    conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_SERIALIZABLE)
+
+
+    dni = show_apadriñante(conn,control_tx=False)
+    if dni is None:
+        conn.rollback()
+        return
+    
+    sql= """
+        select codchip, nome, observacions, can.DNI_apadriñante
+        from can
+        where DNI_apadriñante = %(d)s
+    """
+    
+    with conn.cursor() as cur:                                      
+        try:                     
+            cur.execute(sql,{'d':dni})
+            row=cur.fetchone()
+           
+            if row:
+                print("\nLista de cans apadriñados:")
+                while row:
+                    print(f"Can número {cur.rownumber} de {cur.rowcount}:")
+                    print(f"-Código do chip: {row[0]}")
+                    print(f"-Nome: {row[1]}")
+                    print(f"-Observacións: {row[2]}")
+                    print("\n")
+                    row=cur.fetchone()
+
+            else:
+                print("Non hai cans apadriñados polo apadriñante indicado")
+            conn.commit()
+            
+        except psycopg2.Error as e:
+            if e.pgcode==psycopg2.errorcodes:
+                print('Error: ')
+            else:
+                print(f'Error xenérico: {e.pgcode}: {e.pgerror}')
+            conn.rollback()
+    
+
 ## ------------------------------------------------------------
 ##Función para listar unha serie de cuotas da base de datos en base a un valor
 ##-------------------------------------------------------------
@@ -332,8 +393,9 @@ def show_cuotas_by_valor(conn):
     """
     conn.isolation_level = psycopg2.extensions.ISOLATION_LEVEL_READ_COMMITTED
 
-    svalor=input("Valor da cuota: ")
-    valor = None if svalor=="" else float(svalor)
+    valor=input("Valor da cuota: ")
+    if not valor.isnumeric():
+        return print("Error: valor da cuota incorrecto debe ser un número")
 
     sql= "select codcuota,nome,valor from cuota where valor < %(v)s"
     
@@ -368,8 +430,10 @@ def update_cuota(conn):
         return
     
     
-    sincr=input("Incremento (%) da nova cuota")
-    incr = None if sincr=="" else float(sincr)
+    incr=input("Incremento (%) da nova cuota: ")
+    if not incr.isnumeric():
+        return print("Error: valor da cuota incorrecto debe ser un número")
+    incr = None if incr=="" else float(incr)
 
     sql= """
             update cuota
@@ -441,15 +505,32 @@ def realizar_apadriñamento(conn):
     conn.isolation_level = psycopg2.extensions.ISOLATION_LEVEL_SERIALIZABLE
 
     dni = input("Introduce o DNI da persoa que quere apadriñar: ")
+    if len(dni)!=9:
+        return print("Error: dni incorrecto debe tener 8 dígitos y una letra")
+    if not dni[8:9].isalpha():
+        return print("Error: dni incorrecto debe tener una letra al final")
+    if not dni[1:8].isnumeric():
+        return print("Error: dni incorrecto debe tener 8 dígitos al inicio")
     if dni=="":
         dni=None
     cod = input("Introduce o código da cuota que vai pagar (o que xa estaba pagando ou un novo se o desexa): ")
+    if not cod.isnumeric():
+        return print("Error: código da cuota incorrecto debe ser un número")
     if cod=="":
         cod=None
     chip = input("Introduce o chip do can que se quere apadriñar: ")
+    if not chip.isnumeric():
+        return print("Error código de chip incorrecto debe ser un número")
+    if len(chip)!=15:
+        return print("Error código de chip incorrecto debe tener 15 dígitos")
+    
     if chip=="":
         chip=None
 
+    sql_select_can = """
+        select DNI_apadriñante from can 
+        where codchip = %(chip)s
+    """
     sql_select_cuota = """
         select codcuota from cuota 
         where codcuota = %(ccu)s
@@ -465,23 +546,28 @@ def realizar_apadriñamento(conn):
     """
 
     with conn.cursor() as cur:                                      
-        try:                     
-            
-            cur.execute(sql_select_cuota,{'ccu':cod})
+        try:  
+            cur.execute(sql_select_can,{'chip':chip})
             row=cur.fetchone()
+            if row and row[0] != dni:
+                cur.execute(sql_select_cuota,{'ccu':cod})
+                row=cur.fetchone()
            
-            if row:
-                cur.execute(sql_apadriñante,{'c':cod,'d':dni})
-                if cur.rowcount == 0:
-                    print("Error: DNI", dni, " non válido")
-                else:
-                    cur.execute(sql_can,{'d':dni,'ch':chip})
+                if row:
+                    cur.execute(sql_apadriñante,{'c':cod,'d':dni})
                     if cur.rowcount == 0:
-                        print("Error: error de actualización do can")
-                    else:  
-                        print("A acción de apadriñamento realizouse correctamente")
+                        print("Error: DNI", dni, " non válido")
+                    else:
+                        cur.execute(sql_can,{'d':dni,'ch':chip})
+                        if cur.rowcount == 0:
+                            print("Error: error de actualización do can")
+                        else:  
+                            print("A acción de apadriñamento realizouse correctamente")
+                else:
+                    print("Error: non existe a cuota co código:",cod,"")
             else:
-                print("Error: non existe a cuota co código:",cod,"")
+                print("Error: o can indicado non existe ou xa está apadriñado polo apadriñante indicado")
+
             conn.commit()
 
         except psycopg2.Error as e:
@@ -507,7 +593,7 @@ def menu(conn):
 2 - Engadir apadriñante
 3 - Engadir cuota
 4 - Eliminar can
-5 - Listar cans
+5 - Ver apadriñamentos de...
 6 - Mostrar apadriñante
 7 - Mostrar cuotas polo valor
 8 - Mostrar cuota
@@ -531,7 +617,7 @@ q - Saír
         elif tecla == '4':
             delete_can(conn)
         elif tecla == '5':
-            show_cans(conn)
+            show_apadriñante_and_cans(conn)
         elif tecla == '6':
             show_apadriñante(conn)
         elif tecla == '7':

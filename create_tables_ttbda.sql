@@ -1,9 +1,10 @@
  /*CREACIÓN DE LA BASE DE DATOS 'Protectora' */
 
-drop database if exists ttbda;
+
 drop table if exists apadriñante;
 drop table if exists cuota;
 drop table if exists can;
+drop database if exists ttbda;
 
 create database ttbda;
 
