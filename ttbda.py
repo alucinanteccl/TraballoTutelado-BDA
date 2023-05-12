@@ -1,5 +1,5 @@
 # Autores: Lucía Conde Fuentes (l.conde@udc.es) Julia Roade Conejo (julia.roade@udc.es)
-# Data de creación: 19-01-2021
+# Data de creación: 07-05-2023
 #
 
 import psycopg2
